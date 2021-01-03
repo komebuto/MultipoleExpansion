@@ -1,6 +1,6 @@
 #include <iostream>
 #include <cmath>
-#include <Eigen/Eigen>
+#include <eigen3/Eigen/Eigen>
 #include <cubature/cubature.h>
 #include "functions.h"
 #include "coordinate.h"

@@ -5,7 +5,7 @@
 #include <vector>
 #include <complex>
 #include <map>
-#include <Eigen/Eigen>
+#include <eigen3/Eigen/Eigen>
 #include <gsl/gsl_sf_bessel.h>
 #include <gsl/gsl_sf_legendre.h>
 #include "coordinate.h"

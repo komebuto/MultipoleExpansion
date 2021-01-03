@@ -1,3 +1,6 @@
+PARALLEL  = 1
+NUMTHREADS= 36
+
 CXX       = g++
 ifeq ($(PARALLEL), 1)
 CXXFLAGS  = -std=c++17 -Wall -g -fopenmp
@@ -18,7 +21,6 @@ OBJDIRS   = $(addprefix $(OBJROOT)/, $(SRCDIRS))
 DEPENDS   = $(OBJECTS:.o=.d)
 
 PROFILE   = 0
-NUMTHREADS= 4
 
 TESTDIR   = ../test
 TESTS     = test.cpp

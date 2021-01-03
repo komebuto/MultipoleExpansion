@@ -3,7 +3,7 @@
 
 #include <complex>
 #include <vector>
-#include <Eigen/Eigen>
+#include <eigen3/Eigen/Eigen>
 #include "coordinate.h"
 
 namespace special {

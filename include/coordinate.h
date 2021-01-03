@@ -5,7 +5,7 @@
 #include <complex>
 #include <string>
 #include <cmath>
-#include <Eigen/Eigen>
+#include <eigen3/Eigen/Eigen>
 #include "mytype.h"
 
 namespace coordinate {
