@@ -3,6 +3,7 @@
 
 #include <complex>
 #include <vector>
+#include <utility>
 #include <eigen3/Eigen/Eigen>
 #include "coordinate.h"
 
@@ -32,8 +33,6 @@ Eigen::Vector3cd curl_vector_spherical_harmonics(
                                     int p, 
                                     int tau, char sigma, int l, int m,
                                     double k, double r, double theta, double phi);
-
-struct VecSphIndex { int p, tau; char sigma; int l, m; };
 } // namespace special
 
 #endif // __FUNCTIONS_H_

@@ -1,10 +1,7 @@
-#include <iostream>
-#include <vector>
-#include <cmath>
-#include "functions.h"
+#include "TMatrix.h"
 
 using namespace std;
-using v_double = vector<double>;
+using namespace TMatrix;
 
 int main () {
     ;
