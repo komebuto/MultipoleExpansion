@@ -18,6 +18,7 @@ OBJDIRS   = $(addprefix $(OBJROOT)/, $(SRCDIRS))
 DEPENDS   = $(OBJECTS:.o=.d)
 
 PROFILE   = 0
+NUMTHREADS= 4
 
 TESTDIR   = ../test
 TESTS     = test.cpp
@@ -53,6 +54,9 @@ else
 endif
 
 test: $(TESTTARGET)
+ifeq ($(PARALLEL), 1)
+	export OMP_NUM_THREADS=$(NUMTHREADS)
+endif
 	$(TESTDIR)/$(TESTTARGET)
 ifeq ($(PROFILE), 1)
 	gprof $(TESTDIR)/$(TESTTARGET) > $(TESTDIR)/gmon.log
