@@ -24,10 +24,15 @@ PROFILE   = 0
 
 TESTDIR   = ../test
 TESTS     = test.cpp
+TESTOUTDIR= ../test/out
 TESTTARGET= testprogram
 INPUT     = input.txt 
 
+# makes directory of name $(1) if not existed
+Makedir   = @if [ ! -e $(1) ]; then mkdir -p $(1); fi 
+
 $(TARGETS): $(OBJECTS) $(LDLIBS)
+	$(call Makedir, $(TARGETDIR))
 ifeq ($(PROFILE), 1)
 	$(CXX) -pg -o $(TARGETDIR)/$@ $^
 else
@@ -35,7 +40,7 @@ else
 endif
 
 $(OBJROOT)/%.o: $(SRCROOT)/%.cpp
-	@if [ ! -e `dirname $@` ]; then mkdir -p `dirname $@`; fi
+	$(call Makedir, `dirname $@`)
 ifeq ($(PROFILE), 1)
 	$(CXX) -pg $(CXXFLAGS) $(INCLUDE) -o $@ -c $<
 else
@@ -49,30 +54,31 @@ in: $(TARGETS)
 	$(TARGETDIR)/$< < $(TESTDIR)/$(INPUT)
 
 $(TESTTARGET): $(OBJECTS) $(LDLIBS)
+	$(call Makedir, $(TESTOUTDIR))
 ifeq ($(PROFILE), 1)
-	$(CXX) $(CXXFLAGS) $(INCLUDE) -pg -o $(TESTDIR)/$@ $(TESTDIR)/$(TESTS) $(filter-out %main.o, $^)
+	$(CXX) $(CXXFLAGS) $(INCLUDE) -pg -o $(TESTOUTDIR)/$@ $(TESTDIR)/$(TESTS) $(filter-out %main.o, $^)
 else
-	$(CXX) $(CXXFLAGS) $(INCLUDE) -o $(TESTDIR)/$@ $(TESTDIR)/$(TESTS) $(filter-out %main.o, $^)
+	$(CXX) $(CXXFLAGS) $(INCLUDE) -o $(TESTOUTDIR)/$@ $(TESTDIR)/$(TESTS) $(filter-out %main.o, $^)
 endif
 
 test: $(TESTTARGET)
 ifeq ($(PARALLEL), 1)
 	export OMP_NUM_THREADS=$(NUMTHREADS)
 endif
-	$(TESTDIR)/$(TESTTARGET)
+	$(TESTOUTDIR)/$(TESTTARGET)
 ifeq ($(PROFILE), 1)
-	gprof $(TESTDIR)/$(TESTTARGET) > $(TESTDIR)/gmon.log
+	gprof $(TESTOUTDIR)/$(TESTTARGET) > $(TESTOUTDIR)/gmon.log
 endif
 
 
 profiletest: $(TESTTARGET)
 ifeq ($(PROFILE), 1)
-	gprof $(TESTDIR)/$(TESTTARGET) gmon.out
+	gprof $(TESTOUTDIR)/$(TESTTARGET) gmon.out
 else
 	echo "set PROFILE to 1 in makefile"
 endif
 
 clean:
-	rm -f $(TARGETDIR)/$(TARGETS) $(OBJROOT)/*.o $(TESTDIR)/$(TESTTARGET) *.out *.log $(TESTDIR)/*.log
+	rm -f $(TESTOUTDIR)/* $(OBJROOT)/*.o
 
 .PHONY: test, in, dummy

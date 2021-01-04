@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <eigen3/Eigen/Dense>
 #include <cubature/cubature.h>
 #include <cmath>
@@ -18,6 +19,7 @@ using namespace special;
 using namespace TMatrix;
 
 namespace test {
+const string TESTOUTDIR = "../test/out";
 constexpr int count_lm(int lmax) { return (lmax + 3) * lmax / 2 + 1;}
 constexpr int LMMAX = count_lm(10); // assuming lmax is <= 10
 constexpr double EPS = 1e-8;
@@ -133,26 +135,26 @@ void test_vector_spherical(bool vectorized = false) {
     }
 }
 
-pair<int, int> writeoutQ(int lmax) {
+pair<int, int> writeoutQ(int lmax, string fname = "Qtmp.csv") {
+    std::ofstream file(TESTOUTDIR + "/" + fname);
     constexpr double k  = 1.0;
     constexpr double r0 = 1.0;
     int cntfinite = 0, cntall = 0;
-    for (int id1 = 0; id1 < 8*count_lm(lmax); ++id1)
-    for (int id2 = 0; id2 < 8*count_lm(lmax); ++id2) {
-        ++cntall;
-        int p1, p2, tau1, tau2, l1, l2, m1, m2;
-        char sig1, sig2;
-        id2prm(id1, lmax, p1, tau1, sig1, l1, m1);
-        id2prm(id2, lmax, p2, tau2, sig2, l2, m2);
-        Indexes idx = make_pair(VecSphIndex{p1,tau1,sig1,l1,m1}, VecSphIndex{p2,tau2,sig2,l2,m2});
-        auto Q = intSphere(idx, k, r0);
-        if (abs(Q) > EPS) {
-            print_indexes(idx);
-            cout << Q << endl;
-            ++cntfinite;
+    for (int id1 = 0; id1 < 8*count_lm(lmax); ++id1) {
+        for (int id2 = 0; id2 < 8*count_lm(lmax); ++id2) {
+            ++cntall;
+            int p1, p2, tau1, tau2, l1, l2, m1, m2;
+            char sig1, sig2;
+            id2prm(id1, lmax, p1, tau1, sig1, l1, m1);
+            id2prm(id2, lmax, p2, tau2, sig2, l2, m2);
+            Indexes idx = make_pair(VecSphIndex{p1,tau1,sig1,l1,m1}, VecSphIndex{p2,tau2,sig2,l2,m2});
+            auto Q = intSphere(idx, k, r0);
+            file << Q.real() << ",";
+            if (abs(Q) > EPS) { ++cntfinite; }
+            ++cntall;
         }
+        file << "\n";
     }
-    return make_pair(cntall, cntfinite);
 }
 
 } // namespace test
