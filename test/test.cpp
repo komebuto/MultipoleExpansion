@@ -20,6 +20,7 @@ using namespace TMatrix;
 namespace test {
 constexpr int count_lm(int lmax) { return (lmax + 3) * lmax / 2 + 1;}
 constexpr int LMMAX = count_lm(10); // assuming lmax is <= 10
+constexpr double EPS = 1e-8;
 
 int M1dotM2(unsigned dim, const double *x, void *fdata,
             unsigned fdim, double *fval) {
@@ -132,22 +133,26 @@ void test_vector_spherical(bool vectorized = false) {
     }
 }
 
-void writeoutQ(int lmax) {
+pair<int, int> writeoutQ(int lmax) {
     constexpr double k  = 1.0;
     constexpr double r0 = 1.0;
+    int cntfinite = 0, cntall = 0;
     for (int id1 = 0; id1 < 8*count_lm(lmax); ++id1)
     for (int id2 = 0; id2 < 8*count_lm(lmax); ++id2) {
+        ++cntall;
         int p1, p2, tau1, tau2, l1, l2, m1, m2;
         char sig1, sig2;
         id2prm(id1, lmax, p1, tau1, sig1, l1, m1);
         id2prm(id2, lmax, p2, tau2, sig2, l2, m2);
         Indexes idx = make_pair(VecSphIndex{p1,tau1,sig1,l1,m1}, VecSphIndex{p2,tau2,sig2,l2,m2});
         auto Q = intSphere(idx, k, r0);
-        if (abs(Q) > 0) {
+        if (abs(Q) > EPS) {
             print_indexes(idx);
             cout << Q << endl;
+            ++cntfinite;
         }
     }
+    return make_pair(cntall, cntfinite);
 }
 
 } // namespace test
@@ -171,5 +176,7 @@ int main() {
     cout << "lmax: ";
     int lmax;
     cin  >> lmax;
-    test::writeoutQ(lmax);
+    auto cnt = test::writeoutQ(lmax);
+    cout << "\ncntall: " << cnt.first << ", cntfinite: " << cnt.second << endl;
+    cout << "cnt_diagnol: " << 8*test::count_lm(lmax) << endl;
 }

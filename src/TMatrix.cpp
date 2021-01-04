@@ -51,8 +51,8 @@ Eigen::Vector3cd integrand_vec(Indexes &index, double k, double r, double theta,
     Eigen::Vector3cd M1, cM1, M2, cM2;
     M1  = special::vector_spherical_harmonics(n1.p, n1.tau, n1.sigma, n1.l, n1.m, k, r, theta, phi);
     cM1 = special::curl_vector_spherical_harmonics(n1.p, n1.tau, n1.sigma, n1.l, n1.m, k, r, theta, phi);
-    M1  = special::vector_spherical_harmonics(n2.p, n2.tau, n2.sigma, n2.l, n2.m, k, r, theta, phi);
-    cM1 = special::curl_vector_spherical_harmonics(n2.p, n2.tau, n2.sigma, n2.l, n2.m, k, r, theta, phi);
+    M2  = special::vector_spherical_harmonics(n2.p, n2.tau, n2.sigma, n2.l, n2.m, k, r, theta, phi);
+    cM2 = special::curl_vector_spherical_harmonics(n2.p, n2.tau, n2.sigma, n2.l, n2.m, k, r, theta, phi);
     return cM1.cross(M2) + M1.cross(cM2);
 }
 
@@ -124,7 +124,6 @@ complex<double> intSphere(Indexes indexes, double k, double r) {
               vardim, varmin, varmax, 
               maxEval, reqAbsError, reqRelError, norm, 
               val, err);
-            
     return complex<double>{val[0],val[1]};
 }
 
