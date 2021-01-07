@@ -3,13 +3,13 @@ NUMTHREADS= 36
 
 CXX       = g++
 ifeq ($(PARALLEL), 1)
-CXXFLAGS  = -std=c++17 -Wall -g -fopenmp
+CXXFLAGS  = -std=c++14 -Wall -g -fopenmp
 else
-CXXFLAGS  = -std=c++17 -Wall -g
+CXXFLAGS  = -std=c++14 -Wall -g
 endif
 LDFLAGS   = -L/usr/local/lib
-LDLIBS    = -lcubature64-1.0.3 -lgsl -lgslcblas -lm
-INCLUDE   = -I/usr/local/include -I../include
+LDLIBS    = -lcubature64-1.0.3 -lgsl -lgslcblas -lm -lpython3.8 -lcomplex_bessel
+INCLUDE   = -I/usr/local/include -I../include -I/usr/include/python3.8
 TARGETS   = program
 TARGETDIR = ../bin
 SRCROOT   = .
@@ -79,6 +79,6 @@ else
 endif
 
 clean:
-	rm -f $(TESTOUTDIR)/* $(OBJROOT)/*.o
+	rm -f $(TESTOUTDIR)/* $(TESTDIR)/*tmp* $(OBJROOT)/*.o $(TARGETDIR)/*
 
 .PHONY: test, in, dummy

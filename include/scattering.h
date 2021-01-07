@@ -4,6 +4,11 @@
 #include <complex>
 #include "functions.h"
 
+namespace Mie {
+std::complex<double> coef_an(int n, double k0, double k1, double r);
+std::complex<double> coef_bn(int n, double k0, double k1, double r);
+}
+
 namespace TMatrix {
 struct TmatrixIndex{int tau; char sigma; int l, m; };
 struct VecSphIndex { int p, tau; char sigma; int l, m; };

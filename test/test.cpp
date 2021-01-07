@@ -5,18 +5,25 @@
 #include <cmath>
 #include <chrono>
 #include <tuple>
+#include <gsl/gsl_sf_bessel.h>
 #include <gsl/gsl_sf_legendre.h>
 #include <omp.h>
+#include <matplotlibcpp.h>
+#include <complex_bessel.h>
+
+using namespace std::complex_literals;
 
 #include "functions.h"
 #include "coordinate.h"
-#include "TMatrix.h"
+#include "scattering.h"
 
 using namespace std;
 using namespace Eigen;
 using namespace coordinate;
 using namespace special;
 using namespace TMatrix;
+using namespace sp_bessel;
+namespace plt = matplotlibcpp;
 
 namespace test {
 const string TESTOUTDIR = "../test/out";
@@ -211,6 +218,18 @@ void checkTsph(int lmax, double k0, double k1, double r) {
     }
 }
 
+double Qext(double x, int lmax) {
+    double res = 0;
+    double k0  = 1;
+    double k1 = 1.33;
+    for (int i = 1; i <= lmax; ++i) {
+        auto an = Mie::coef_an(i, k0, k1, x/k0);
+        auto bn = Mie::coef_bn(i, k0, k1, x/k0);
+        res += (2*i + 1) * (an.real() + bn.real());
+    }
+    return res;
+}
+
 } // namespace test
 
 void print_aspolar(VectorPolar3d p) {
@@ -222,14 +241,18 @@ void print_ascart(VectorCartesian3d p) {
 }
 
 int main() {
+    int n = 1;
+    double x = 1;
+    cout << sph_besselJ(n, 1.0+1.0i) << endl;
+    /*
     double k0 = 1;
     double k1 = 10;
     double r = 1;
     for (int i = 0; i < 10; ++i) {
-        cout << "psi[l=" << i << ", kr=" << k0*r << "] = " << riccati_bessel_zn(1, i, k0*r, false) << endl;
+        cout << "Sn[l=" << i << ", kr=" << k0*r << "] = " << riccati_bessel_zn(1, i, k0*r, true) << endl;
     }
     for (int i = 0; i < 10; ++i) {
-        cout << "xi[l=" << i << ", kr=" << k0*r << "] = " << riccati_bessel_zn(3, i, k0*r, false) << endl;
+        cout << "Cn[l=" << i << ", kr=" << k0*r << "] = " << riccati_bessel_zn(2, i, k0*r, true) << endl;
     }
     for (int i = 0; i < 10; ++i) {
         cout << "h1[l=" << i << ", kr=" << k0*r << "] = " << spherical_bessel_zn(3, i, k0*r, false) << endl;
@@ -238,13 +261,25 @@ int main() {
         cout << "yn[l=" << i << ", kr=" << k0*r << "] = " << spherical_bessel_zn(2, i, k0*r, false) << endl;
     }
     for (int i = 0; i < 10; ++i) {
-        cout << "A[" << i << "] = " << Mie_coef_an(i, k0, k1, r) << endl;
+        cout << "A[" << i << "] = " << Mie::coef_an(i, k0, k1, r) << endl;
     }
     for (int i = 0; i < 10; ++i) {
-        cout << "B[" << i << "] = " << Mie_coef_bn(i, k0, k1, r) << endl;
+        cout << "B[" << i << "] = " << Mie::coef_bn(i, k0, k1, r) << endl;
     }
-    /*
-    int lmax;
+
+    double minx = 1, maxx = 40;
+    double dx   = 1;
+    vector<double> xs;
+    vector<double> Qs;
+    int lmax = 10;
+    for (double x = minx; x <= maxx; x += dx) {
+        xs.push_back(x);
+        Qs.push_back(test::Qext(x, lmax));
+    }
+    plt::plot(xs, Qs);
+    plt::save("../test/out/Qext.png");
+
+    
     cout << "lmax: ";
     cin >> lmax;
     test::checkTsph(lmax, 1, 10, 1);
@@ -260,5 +295,5 @@ int main() {
     auto cnt = test::writeoutQ(lmax);
     cout << "\ncntall: " << cnt.first << ", cntfinite: " << cnt.second << endl;
     cout << "cnt_diagnol: " << 8*test::count_lm(lmax) << endl;
-
-*/}
+    */
+}

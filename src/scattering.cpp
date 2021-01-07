@@ -2,14 +2,62 @@
 #include <cmath>
 #include <eigen3/Eigen/Eigen>
 #include <cubature/cubature.h>
+#include <complex_bessel.h>
 #include "functions.h"
 #include "coordinate.h"
-#include "TMatrix.h"
+#include "scattering.h"
 
 using namespace std;
 using namespace special;
 using namespace Eigen;
 using namespace coordinate;
+using namespace sp_bessel;
+
+namespace Mie {
+/*
+ Mie coefficient a
+ Absorption and Scattering of Light by Small Particles
+
+ n  : index of vector spherical harmonics 
+ k0 : wave number of medium
+ k1 : wave number of scatterer
+ r  : radius of sphere scatterer
+*/
+complex<double> coef_an(int n, double k0, double k1, double r) {
+    double m = k1 / k0;
+    double x = k0 * r;
+
+    // numerator
+    complex<double> num = m * riccati_bessel_zn(1, n, m*x) * riccati_bessel_zn(1, n, x, true) 
+                        - riccati_bessel_zn(1, n, x) * riccati_bessel_zn(1, n, m*x, true);
+    // denominator
+    complex<double> den = m * riccati_bessel_zn(1, n, m*x) * riccati_bessel_zn(3, n, x, true) 
+                        - riccati_bessel_zn(3, n, x) * riccati_bessel_zn(1, n, m*x, true);
+    return num / den;
+}
+
+/*
+ Mie coefficient b
+ Absorption and Scattering of Light by Small Particles
+
+ n  : index of vector spherical harmonics 
+ k0 : wave number of medium
+ k1 : wave number of scatterer
+ r  : radius of sphere scatterer
+*/
+complex<double> coef_bn(int n, double k0, double k1, double r) {
+    auto m = k1 / k0;
+    auto x = k0 * r;
+
+    // numerator
+    complex<double> num = riccati_bessel_zn(1, n, m*x) * riccati_bessel_zn(1, n, x, true) 
+                        - m * riccati_bessel_zn(1, n, x) * riccati_bessel_zn(1, n, m*x, true);
+    // denominator
+    complex<double> den = riccati_bessel_zn(1, n, m*x) * riccati_bessel_zn(3, n, x, true) 
+                        - m * riccati_bessel_zn(3, n, x) * riccati_bessel_zn(1, n, m*x, true);
+    return num / den;
+}
+}
 
 namespace TMatrix {
 bool operator<(const VecSphIndex& n1, const VecSphIndex& n2) {
@@ -40,45 +88,15 @@ bool operator!=(const VecSphIndex& n1, const VecSphIndex& n2) {
     return !(n1 == n2);
 }
 
-/*
- Mie coefficient a
- Absorption and Scattering of Light by Small Particles
- n  : index of vector spherical harmonics 
- k0 : wave number of medium
- k1 : wave number of scatterer
- r  : radius of sphere scatterer
-*/
-complex<double> Mie_coef_an(int n, double k0, double k1, double r) {
-    double m = k1 / k0;
-    double x = k0 * r;
-    complex<double> num = m * riccati_bessel_zn(1, n, m*x) * riccati_bessel_zn(1, n, x, true) - riccati_bessel_zn(1, n, x) * riccati_bessel_zn(1, n, m*x, true);
-    complex<double> den = m * riccati_bessel_zn(1, n, m*x) * riccati_bessel_zn(3, n, x, true) - riccati_bessel_zn(3, n, x) * riccati_bessel_zn(1, n, m*x, true);
-    return num / den;
-}
-
-/*
- Mie coefficient b
- Absorption and Scattering of Light by Small Particles
- n  : index of vector spherical harmonics 
- k0 : wave number of medium
- k1 : wave number of scatterer
- r  : radius of sphere scatterer
-*/
-complex<double> Mie_coef_bn(int n, double k0, double k1, double r) {
-    double m = k1 / k0;
-    double x = k0 * r;
-    complex<double> num = riccati_bessel_zn(1, n, m*x) * riccati_bessel_zn(1, n, x, true) - m * riccati_bessel_zn(1, n, x) * riccati_bessel_zn(1, n, m*x, true);
-    complex<double> den = riccati_bessel_zn(1, n, m*x) * riccati_bessel_zn(3, n, x, true) - m * riccati_bessel_zn(3, n, x) * riccati_bessel_zn(1, n, m*x, true);
-    return num / den;
-}
-
 // element of Tmatrix of sphere of radius a
 // k0 : wave number of medium
 // k1 : wave number of particle
 complex<double> T_sph_element(TmatrixIndex n, double k0, double k1, double r) {
     if (n.m != 1) return complex<double>{};
-    if (n.tau == 1) return - Mie_coef_bn(n.l, k0, k1, r);
-    else if (n.tau == 2) return - Mie_coef_an(n.l, k0, k1, r);
+    if (n.tau == 1) return - Mie::coef_bn(n.l, k0, k1, r);
+    else if (n.tau == 2) return - Mie::coef_an(n.l, k0, k1, r);
+    cerr << "T_shp_element(): error: argument n.tau must be 1, or 2" << endl;
+    return 0;
 }
 
 /*

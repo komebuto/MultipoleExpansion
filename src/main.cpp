@@ -1,4 +1,4 @@
-#include "TMatrix.h"
+#include "scattering.h"
 
 using namespace std;
 using namespace TMatrix;

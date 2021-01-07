@@ -95,6 +95,8 @@ complex<double> riccati_bessel_zn(int p, int n, double x, bool derivative) {
     case 2:
         return - x * spherical_bessel_zn(p, n, x, false);
     }
+    cerr << "riccati_bessel_zn(): error: argument p must be 1, 2, 3, or 4" << endl;
+    return 0;
 }
 
 constexpr long long fact[] = {1, 1, 2, 6, 24, 120, 720, 5040, 
