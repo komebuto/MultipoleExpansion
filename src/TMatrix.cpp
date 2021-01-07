@@ -41,18 +41,61 @@ bool operator!=(const VecSphIndex& n1, const VecSphIndex& n2) {
 }
 
 /*
+ Mie coefficient a
+ Absorption and Scattering of Light by Small Particles
+ n  : index of vector spherical harmonics 
+ k0 : wave number of medium
+ k1 : wave number of scatterer
+ r  : radius of sphere scatterer
+*/
+complex<double> Mie_coef_an(int n, double k0, double k1, double r) {
+    double m = k1 / k0;
+    double x = k0 * r;
+    complex<double> num = m * riccati_bessel_zn(1, n, m*x) * riccati_bessel_zn(1, n, x, true) - riccati_bessel_zn(1, n, x) * riccati_bessel_zn(1, n, m*x, true);
+    complex<double> den = m * riccati_bessel_zn(1, n, m*x) * riccati_bessel_zn(3, n, x, true) - riccati_bessel_zn(3, n, x) * riccati_bessel_zn(1, n, m*x, true);
+    return num / den;
+}
+
+/*
+ Mie coefficient b
+ Absorption and Scattering of Light by Small Particles
+ n  : index of vector spherical harmonics 
+ k0 : wave number of medium
+ k1 : wave number of scatterer
+ r  : radius of sphere scatterer
+*/
+complex<double> Mie_coef_bn(int n, double k0, double k1, double r) {
+    double m = k1 / k0;
+    double x = k0 * r;
+    complex<double> num = riccati_bessel_zn(1, n, m*x) * riccati_bessel_zn(1, n, x, true) - m * riccati_bessel_zn(1, n, x) * riccati_bessel_zn(1, n, m*x, true);
+    complex<double> den = riccati_bessel_zn(1, n, m*x) * riccati_bessel_zn(3, n, x, true) - m * riccati_bessel_zn(3, n, x) * riccati_bessel_zn(1, n, m*x, true);
+    return num / den;
+}
+
+// element of Tmatrix of sphere of radius a
+// k0 : wave number of medium
+// k1 : wave number of particle
+complex<double> T_sph_element(TmatrixIndex n, double k0, double k1, double r) {
+    if (n.m != 1) return complex<double>{};
+    if (n.tau == 1) return - Mie_coef_bn(n.l, k0, k1, r);
+    else if (n.tau == 2) return - Mie_coef_an(n.l, k0, k1, r);
+}
+
+/*
 * integrate n_vec・integrand_vec on Surface
+  k0 : wave number of medium
+  k1 : wave number of particle
 */
 
-Eigen::Vector3cd integrand_vec(Indexes &index, double k, double r, double theta, double phi) {
+Eigen::Vector3cd integrand_vec(Indexes &index, double k0, double k1, double r, double theta, double phi) {
     auto   n1 = index.first;
     auto   n2 = index.second;
 
     Eigen::Vector3cd M1, cM1, M2, cM2;
-    M1  = special::vector_spherical_harmonics(n1.p, n1.tau, n1.sigma, n1.l, n1.m, k, r, theta, phi);
-    cM1 = special::curl_vector_spherical_harmonics(n1.p, n1.tau, n1.sigma, n1.l, n1.m, k, r, theta, phi);
-    M2  = special::vector_spherical_harmonics(n2.p, n2.tau, n2.sigma, n2.l, n2.m, k, r, theta, phi);
-    cM2 = special::curl_vector_spherical_harmonics(n2.p, n2.tau, n2.sigma, n2.l, n2.m, k, r, theta, phi);
+    M1  = special::vector_spherical_harmonics(n1.p, n1.tau, n1.sigma, n1.l, n1.m, k0, r, theta, phi);
+    cM1 = special::curl_vector_spherical_harmonics(n1.p, n1.tau, n1.sigma, n1.l, n1.m, k0, r, theta, phi);
+    M2  = special::vector_spherical_harmonics(n2.p, n2.tau, n2.sigma, n2.l, n2.m, k1, r, theta, phi);
+    cM2 = special::curl_vector_spherical_harmonics(n2.p, n2.tau, n2.sigma, n2.l, n2.m, k1, r, theta, phi);
     return cM1.cross(M2) + M1.cross(cM2);
 }
 
@@ -61,11 +104,12 @@ Eigen::Vector3cd integrand_vec(Indexes &index, double k, double r, double theta,
 // n_vec = er
 // var = {theta, phi}
 int integrand_sph(unsigned int ndim, const double *var, void *fdata, unsigned int fdim, double *fval) {
-    double k = ((Parameters*)fdata)->k;
+    double k0 = ((Parameters*)fdata)->k0;
+    double k1 = ((Parameters*)fdata)->k1;
     double r = ((Parameters*)fdata)->at;
     Indexes id = ((Parameters*)fdata)->indexes;
 
-    auto V = integrand_vec(id, k, r, var[0], var[1]);
+    auto V = integrand_vec(id, k0, k1, r, var[0], var[1]);
 
     fval[0] = V[0].real() * r*r * std::sin(var[0]);
     fval[1] = V[1].imag() * r*r * std::sin(var[0]);
@@ -75,7 +119,8 @@ int integrand_sph(unsigned int ndim, const double *var, void *fdata, unsigned in
 // surface integrate on rectangle
 // n_vec = ex, ey, ez
 int integrand_rec(unsigned int ndim, const double *var, void *fdata, unsigned int fdim, double *fval) {
-    double  k  = ((Parameters*)fdata)->k;
+    double  k0 = ((Parameters*)fdata)->k0;
+    double  k1 = ((Parameters*)fdata)->k1;
     double  x, y, z;
     Indexes id = ((Parameters*)fdata)->indexes;
 
@@ -91,7 +136,7 @@ int integrand_rec(unsigned int ndim, const double *var, void *fdata, unsigned in
     double r, theta, phi;
     tie(r, theta, phi) = cart2pol(x, y, z);
     
-    auto V = integrand_vec(id, k, r, theta, phi);
+    auto V = integrand_vec(id, k0, k1, r, theta, phi);
 
     complex<double> vx, vy, vz;
     tie(vx, vy, vz) = pol2cart(V[0], V[1], V[2]);
@@ -107,7 +152,7 @@ int integrand_rec(unsigned int ndim, const double *var, void *fdata, unsigned in
     return 1;
 }
 
-complex<double> intSphere(Indexes indexes, double k, double r) {
+complex<double> intSphere(Indexes indexes, double k0, double k1, double r) {
     constexpr unsigned   fdim        = 2; // 返り値の次元
     constexpr unsigned   vardim      = 2; // 変数の数 2 = {theta, phi}
     constexpr size_t     maxEval     = 0;
@@ -118,7 +163,7 @@ complex<double> intSphere(Indexes indexes, double k, double r) {
     constexpr double varmax[] = {M_PI, 2*M_PI};
     double val[fdim], err[fdim];
 
-    Parameters prm{indexes, k, r};
+    Parameters prm{indexes, k0, k1, r};
     
     hcubature(fdim, integrand_sph, &prm, 
               vardim, varmin, varmax, 
@@ -127,7 +172,7 @@ complex<double> intSphere(Indexes indexes, double k, double r) {
     return complex<double>{val[0],val[1]};
 }
 
-complex<double> intRectangular(Indexes indexes, double k, double wx, double wy, double wz) {
+complex<double> intRectangular(Indexes indexes, double k0, double k1, double wx, double wy, double wz) {
     constexpr unsigned   fdim        = 2;
     constexpr unsigned   vardim      = 2;
     constexpr size_t     maxEval     = 0;
@@ -140,7 +185,7 @@ complex<double> intRectangular(Indexes indexes, double k, double wx, double wy, 
     double res[fdim] = {0, 0};
 
     auto f = [&](double at, Parameters::Ax axes, int sign) {
-                    Parameters prm{indexes, k, at, axes};
+                    Parameters prm{indexes, k0, k1, at, axes};
                     hcubature(fdim, integrand_rec, &prm, 
                               vardim, varmin, varmax, 
                               maxEval, reqAbsError, reqRelError, norm, 
