@@ -11,7 +11,6 @@ using namespace std;
 using namespace special;
 using namespace Eigen;
 using namespace coordinate;
-using namespace sp_bessel;
 
 namespace Mie {
 /*
@@ -23,9 +22,9 @@ namespace Mie {
  k1 : wave number of scatterer
  r  : radius of sphere scatterer
 */
-complex<double> coef_an(int n, double k0, double k1, double r) {
-    double m = k1 / k0;
-    double x = k0 * r;
+complex<double> coef_an(int n, complex<double> k0, complex<double> k1, double r) {
+    auto m = k1 / k0;
+    auto x = k0 * r;
 
     // numerator
     complex<double> num = m * riccati_bessel_zn(1, n, m*x) * riccati_bessel_zn(1, n, x, true) 
@@ -45,7 +44,7 @@ complex<double> coef_an(int n, double k0, double k1, double r) {
  k1 : wave number of scatterer
  r  : radius of sphere scatterer
 */
-complex<double> coef_bn(int n, double k0, double k1, double r) {
+complex<double> coef_bn(int n, complex<double> k0, complex<double> k1, double r) {
     auto m = k1 / k0;
     auto x = k0 * r;
 
@@ -57,7 +56,7 @@ complex<double> coef_bn(int n, double k0, double k1, double r) {
                         - m * riccati_bessel_zn(3, n, x) * riccati_bessel_zn(1, n, m*x, true);
     return num / den;
 }
-}
+} // namespace Mie
 
 namespace TMatrix {
 bool operator<(const VecSphIndex& n1, const VecSphIndex& n2) {
@@ -91,7 +90,7 @@ bool operator!=(const VecSphIndex& n1, const VecSphIndex& n2) {
 // element of Tmatrix of sphere of radius a
 // k0 : wave number of medium
 // k1 : wave number of particle
-complex<double> T_sph_element(TmatrixIndex n, double k0, double k1, double r) {
+complex<double> T_sph_element(TmatrixIndex n, complex<double> k0, complex<double> k1, double r) {
     if (n.m != 1) return complex<double>{};
     if (n.tau == 1) return - Mie::coef_bn(n.l, k0, k1, r);
     else if (n.tau == 2) return - Mie::coef_an(n.l, k0, k1, r);

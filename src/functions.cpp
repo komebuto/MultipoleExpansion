@@ -8,43 +8,44 @@
 #include <eigen3/Eigen/Eigen>
 #include <gsl/gsl_sf_bessel.h>
 #include <gsl/gsl_sf_legendre.h>
+#include <complex_bessel.h>
 #include "coordinate.h"
 
 using namespace std;
-using coordinate::VectorPolar3d;
-using coordinate::VectorPolar3cd;
+using namespace sp_bessel;
+using namespace std::complex_literals;
 
 namespace special {
 constexpr double EPS = 1e-10;
 
-double spherical_bessel_jn(int n, double x, bool derivative) {
+complex<double> spherical_bessel_jn(int n, complex<double> z, bool derivative) {
     if (derivative) {
-        if (n == 0) return -spherical_bessel_jn(1, x, false);
-        else        return (n*spherical_bessel_jn(n-1, x, false) - (n+1)*spherical_bessel_jn(n+1, x, false))/(2*n+1);
+        if (n == 0) return -spherical_bessel_jn(1, z, false);
+        else {
+            double nd = static_cast<double>(n);
+            return (nd*spherical_bessel_jn(n-1, z, false) - (nd+1)*spherical_bessel_jn(n+1, z, false))/(2*nd+1);
+        }
     }
-
-    if (x < EPS) {
-        if (n == 0) return 1.0;
-        else        return 0.0;
-    }
-
-    return gsl_sf_bessel_Jnu(n + 0.5, x) * sqrt(0.5*M_PI/x);
+    return sp_bessel::sph_besselJ(n, z);
 }
 
-double spherical_bessel_yn(int n, double x, bool derivative) {
+complex<double> spherical_bessel_yn(int n, complex<double> z, bool derivative) {
     if (derivative) {
-        if (n == 0) return -spherical_bessel_yn(1, x, false);
-        else        return (n*spherical_bessel_yn(n-1, x, false) - (n+1)*spherical_bessel_yn(n+1, x, false))/(2*n+1);
+        if (n == 0) return -spherical_bessel_yn(1, z, false);
+        else {
+            double nd = static_cast<double>(n);
+            return (nd*spherical_bessel_yn(n-1, z, false) - (nd+1)*spherical_bessel_yn(n+1, z, false))/(2*nd+1);
+        }
     }
-    return gsl_sf_bessel_Ynu(n + 0.5, x) * sqrt(0.5*M_PI/x);
+    return sp_bessel::sph_besselY(n, z);
 }
 
-complex<double> spherical_bessel_h1n(int n, double x, bool derivative) {
-    return complex<double>{spherical_bessel_jn(n, x, derivative), spherical_bessel_yn(n, x, derivative)};
+complex<double> spherical_bessel_h1n(int n, complex<double> z, bool derivative) {
+    return spherical_bessel_jn(n, z, derivative) + 1.0i * spherical_bessel_yn(n, z, derivative);
 }
 
-complex<double> spherical_bessel_h2n(int n, double x, bool derivative) {
-    return complex<double>{spherical_bessel_jn(n, x, derivative), -spherical_bessel_yn(n, x, derivative)};
+complex<double> spherical_bessel_h2n(int n, complex<double> z, bool derivative) {
+    return spherical_bessel_jn(n, z, derivative) - 1.0i * spherical_bessel_yn(n, z, derivative);
 }
 
 /*
@@ -52,13 +53,13 @@ complex<double> spherical_bessel_h2n(int n, double x, bool derivative) {
 
   int p: the kind of spherical bessel fucntion (1 -> jn, 2 -> yn, 3 -> h1n, 4 -> h2n)
 */
-complex<double> spherical_bessel_zn(int p, int n, double x, bool derivative) {
+complex<double> spherical_bessel_zn(int p, int n, complex<double> z, bool derivative) {
     switch (p)
     {
-    case 1: return complex<double>{spherical_bessel_jn(n,x,derivative),0};
-    case 2: return complex<double>{spherical_bessel_yn(n,x,derivative),0};
-    case 3: return spherical_bessel_h1n(n,x,derivative);
-    case 4: return spherical_bessel_h2n(n,x,derivative);
+    case 1: return spherical_bessel_jn(n,z,derivative);
+    case 2: return spherical_bessel_yn(n,z,derivative);
+    case 3: return spherical_bessel_h1n(n,z,derivative);
+    case 4: return spherical_bessel_h2n(n,z,derivative);
     }
     
     cerr << __FILE__ << ":" << __LINE__ << ": spherical_bessel_zn(): ERROR:" 
@@ -67,33 +68,35 @@ complex<double> spherical_bessel_zn(int p, int n, double x, bool derivative) {
 }
 
 // return spherical_bessel_zn(x)/x
-complex<double> zn_div(int p, int n, double x) {
+complex<double> zn_div(int p, int n, complex<double> z) {
     if (n == 0) return complex<double>{0,0};
-    return (spherical_bessel_zn(p, n-1, x, false) + spherical_bessel_zn(p, n+1, x, false)) / static_cast<double>(2*n+1);
+    return (spherical_bessel_zn(p, n-1, z, false) + spherical_bessel_zn(p, n+1, z, false)) / static_cast<double>(2*n+1);
 }
 
 // return 1/x * d(x*zn(x))/dx
-complex<double> dzn_div(int p, int n, double x) {
-    return zn_div(p, n, x) + spherical_bessel_zn(p, n, x, true);
+complex<double> dzn_div(int p, int n, complex<double> z) {
+    return zn_div(p, n, z) + spherical_bessel_zn(p, n, z, true);
 }
 
 /*
   Riccati-Bessel Functions
 */
-complex<double> riccati_bessel_zn(int p, int n, double x, bool derivative) {
-    if (derivative) {
+complex<double> riccati_bessel_zn(int p, int n, complex<double> z, bool derivative) {
+    if (derivative) { // derivative
         switch (p) {
         case 1: case 3: case 4: // riccati bessel function of first / third/ fourth kind
-            return spherical_bessel_zn(p, n, x, false) + x * spherical_bessel_zn(p, n, x, true);
-        case 2:
-            return - spherical_bessel_zn(p, n, x, false) - x * spherical_bessel_zn(p, n, x, true);
+            return spherical_bessel_zn(p, n, z, false) + z * spherical_bessel_zn(p, n, z, true);
+        case 2:                 // riccati bessel function of second kind
+            return - spherical_bessel_zn(p, n, z, false) - z * spherical_bessel_zn(p, n, z, true);
         }
     }
+
+    // non derivative
     switch (p) {
-    case 1: case 3: case 4:
-        return x * spherical_bessel_zn(p, n, x, false);
-    case 2:
-        return - x * spherical_bessel_zn(p, n, x, false);
+    case 1: case 3: case 4: // riccati bessel function of first / third/ fourth kind
+        return z * spherical_bessel_zn(p, n, z, false);
+    case 2:                 // riccati bessel function of second kind = -1 * z yn(z)
+        return - z * spherical_bessel_zn(p, n, z, false);
     }
     cerr << "riccati_bessel_zn(): error: argument p must be 1, 2, 3, or 4" << endl;
     return 0;

@@ -244,21 +244,21 @@ int main() {
     int n = 1;
     double x = 1;
     cout << sph_besselJ(n, 1.0+1.0i) << endl;
-    /*
+    
     double k0 = 1;
     double k1 = 10;
     double r = 1;
     for (int i = 0; i < 10; ++i) {
-        cout << "Sn[l=" << i << ", kr=" << k0*r << "] = " << riccati_bessel_zn(1, i, k0*r, true) << endl;
+        cout << "Sn[l=" << i << ", kr=" << k0*r << "] = " << riccati_bessel_zn(1, i, 1.0, false) << endl;
     }
     for (int i = 0; i < 10; ++i) {
-        cout << "Cn[l=" << i << ", kr=" << k0*r << "] = " << riccati_bessel_zn(2, i, k0*r, true) << endl;
+        cout << "Cn[l=" << i << ", kr=" << k0*r << "] = " << riccati_bessel_zn(2, i, 1.0, false) << endl;
     }
     for (int i = 0; i < 10; ++i) {
-        cout << "h1[l=" << i << ", kr=" << k0*r << "] = " << spherical_bessel_zn(3, i, k0*r, false) << endl;
+        cout << "jn[l=" << i << ", kr=" << k0*r << "] = " << spherical_bessel_zn(1, i, 1.0+1.0i, true) << endl;
     }
     for (int i = 0; i < 10; ++i) {
-        cout << "yn[l=" << i << ", kr=" << k0*r << "] = " << spherical_bessel_zn(2, i, k0*r, false) << endl;
+        cout << "yn[l=" << i << ", kr=" << k0*r << "] = " << spherical_bessel_zn(2, i, 1.0+1.0i, true) << endl;
     }
     for (int i = 0; i < 10; ++i) {
         cout << "A[" << i << "] = " << Mie::coef_an(i, k0, k1, r) << endl;
@@ -266,7 +266,7 @@ int main() {
     for (int i = 0; i < 10; ++i) {
         cout << "B[" << i << "] = " << Mie::coef_bn(i, k0, k1, r) << endl;
     }
-
+/*
     double minx = 1, maxx = 40;
     double dx   = 1;
     vector<double> xs;

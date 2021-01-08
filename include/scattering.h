@@ -5,8 +5,8 @@
 #include "functions.h"
 
 namespace Mie {
-std::complex<double> coef_an(int n, double k0, double k1, double r);
-std::complex<double> coef_bn(int n, double k0, double k1, double r);
+std::complex<double> coef_an(int n, std::complex<double> k0, std::complex<double> k1, double r);
+std::complex<double> coef_bn(int n, std::complex<double> k0, std::complex<double> k1, double r);
 }
 
 namespace TMatrix {
@@ -33,9 +33,9 @@ std::complex<double> intSphere(Indexes indexes, double k0, double k1, double r);
 std::complex<double> intRectangular(Indexes indexes, double k0, double k1, 
                                     double wx, double wy, double wz);
 
-std::complex<double> Mie_coef_an(int n, double k0, double k1, double r);
-std::complex<double> Mie_coef_bn(int n, double k0, double k1, double r);
-std::complex<double> T_sph_element(TmatrixIndex n, double k0, double k1, double r);
+std::complex<double> Mie_coef_an(int n, std::complex<double> k0, std::complex<double> k1, double r);
+std::complex<double> Mie_coef_bn(int n, std::complex<double> k0, std::complex<double> k1, double r);
+std::complex<double> T_sph_element(TmatrixIndex n, std::complex<double> k0, std::complex<double> k1, double r);
 }
 
 #endif // __TMATRIX_H_
