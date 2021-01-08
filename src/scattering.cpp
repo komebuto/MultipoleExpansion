@@ -28,10 +28,10 @@ complex<double> coef_an(int n, complex<double> k0, complex<double> k1, double r)
 
     // numerator
     complex<double> num = m * riccati_bessel_zn(1, n, m*x) * riccati_bessel_zn(1, n, x, true) 
-                        - riccati_bessel_zn(1, n, x) * riccati_bessel_zn(1, n, m*x, true);
+                            - riccati_bessel_zn(1, n, x)   * riccati_bessel_zn(1, n, m*x, true);
     // denominator
     complex<double> den = m * riccati_bessel_zn(1, n, m*x) * riccati_bessel_zn(3, n, x, true) 
-                        - riccati_bessel_zn(3, n, x) * riccati_bessel_zn(1, n, m*x, true);
+                            - riccati_bessel_zn(3, n, x)   * riccati_bessel_zn(1, n, m*x, true);
     return num / den;
 }
 
@@ -49,11 +49,11 @@ complex<double> coef_bn(int n, complex<double> k0, complex<double> k1, double r)
     auto x = k0 * r;
 
     // numerator
-    complex<double> num = riccati_bessel_zn(1, n, m*x) * riccati_bessel_zn(1, n, x, true) 
-                        - m * riccati_bessel_zn(1, n, x) * riccati_bessel_zn(1, n, m*x, true);
+    complex<double> num =     riccati_bessel_zn(1, n, m*x) * riccati_bessel_zn(1, n, x, true) 
+                        - m * riccati_bessel_zn(1, n, x)   * riccati_bessel_zn(1, n, m*x, true);
     // denominator
-    complex<double> den = riccati_bessel_zn(1, n, m*x) * riccati_bessel_zn(3, n, x, true) 
-                        - m * riccati_bessel_zn(3, n, x) * riccati_bessel_zn(1, n, m*x, true);
+    complex<double> den =     riccati_bessel_zn(1, n, m*x) * riccati_bessel_zn(3, n, x, true) 
+                        - m * riccati_bessel_zn(3, n, x)   * riccati_bessel_zn(1, n, m*x, true);
     return num / den;
 }
 } // namespace Mie

@@ -9,6 +9,7 @@
 #include <gsl/gsl_sf_legendre.h>
 #include <omp.h>
 #include <matplotlibcpp.h>
+#include <functional>
 #include <complex_bessel.h>
 
 using namespace std::complex_literals;
@@ -16,6 +17,7 @@ using namespace std::complex_literals;
 #include "functions.h"
 #include "coordinate.h"
 #include "scattering.h"
+#include "integrate.h"
 
 using namespace std;
 using namespace Eigen;
@@ -31,8 +33,7 @@ constexpr int count_lm(int lmax) { return (lmax + 3) * lmax / 2 + 1;}
 constexpr int LMMAX = count_lm(10); // assuming lmax is <= 10
 constexpr double EPS = 1e-8;
 
-int M1dotM2(unsigned dim, const double *x, void *fdata,
-            unsigned fdim, double *fval) {
+complex<double> M1dotM2(double theta, double phi, void *fdata) {
     VecSphIndex n1 = ((Parameters*)fdata)->indexes.first;
     VecSphIndex n2 = ((Parameters*)fdata)->indexes.second;
     int p     = n1.p;
@@ -48,16 +49,10 @@ int M1dotM2(unsigned dim, const double *x, void *fdata,
     double k0 = ((Parameters*)fdata)->k0;
     double r  = ((Parameters*)fdata)->at;
 
-    double theta = x[0];
-    double phi   = x[1];
-
     auto M1 = special::vector_spherical_harmonics(p, tau1, sig1, l1, m1, k0, r, theta, phi);
     auto M2 = special::vector_spherical_harmonics(q, tau2, sig2, l2, m2, k0, r, theta, phi);
-
-    complex<double> z = M1.transpose() * M2;
-    fval[0] = z.real() * std::sin(theta);
-    fval[1] = z.imag() * std::sin(theta);
-    return 0;
+    
+    return M1.transpose() * M2;
 }
 
 // vectorized version
@@ -132,7 +127,7 @@ void test_vector_spherical(bool vectorized = false) {
         //print_indexes(indexes);
         Parameters prm {indexes, k, 0, r};
         if (vectorized) hcubature_v(fdim, M1dotM2_v, &prm, ndim, xmin, xmax, 0, 1e-4, 1e-4, ERROR_INDIVIDUAL, valtmp, errtmp);
-        else hcubature(fdim, M1dotM2, &prm, ndim, xmin, xmax, 0, 1e-4, 1e-4, ERROR_INDIVIDUAL, valtmp, errtmp);
+        else integrate::sphere(M1dotM2, &prm);
     
         if (!(prm.indexes.first == prm.indexes.second) && valtmp[0] > 1e-4) {
             print_indexes(prm.indexes);
@@ -219,16 +214,34 @@ void checkTsph(int lmax, double k0, double k1, double r) {
 }
 
 double Qext(double x, int lmax) {
-    double res = 0;
-    double k0  = 1;
-    double k1 = 1.33;
+    complex<double> res{};
+    auto k0  = 1.;
+    auto k1 = 1.33 + 1e-8*1i;
     for (int i = 1; i <= lmax; ++i) {
         auto an = Mie::coef_an(i, k0, k1, x/k0);
         auto bn = Mie::coef_bn(i, k0, k1, x/k0);
-        res += (2*i + 1) * (an.real() + bn.real());
+        res += static_cast<double>(2*i + 1) * (an + bn);
     }
-    return res;
+    return res.real()/(x*x);
 }
+
+double integral_sph(std::function<double(double, double)> func, double thetamin, double thetamax, double phimin, double phimax) {
+    auto f = [&](unsigned dim, const double *x, void *fdata, unsigned fdim, double *fval) {
+        fval[0] = func(x[0], x[1]);
+        return 0;
+    };
+    const double xmin[]  = {thetamin, phimin}, xmax[] = {thetamax, phimax};
+    constexpr int    fdim    = 1, ndim = 2;
+    constexpr size_t maxEval = 0;
+    constexpr double reqAbsError = 1e-4, reqRelError = 1e-4;
+    constexpr error_norm norm = ERROR_INDIVIDUAL;
+    void *_;
+    double val, err;
+    hcubature(fdim, f, _, ndim, xmin, xmax, maxEval, reqAbsError, reqRelError, norm, &val, &err);
+    return val; 
+}
+
+double func(double theta, double phi, void* fdata) { return *(double*)fdata * std::sin(theta)*std::cos(phi)*std::cos(phi); }
 
 } // namespace test
 
@@ -244,56 +257,39 @@ int main() {
     int n = 1;
     double x = 1;
     cout << sph_besselJ(n, 1.0+1.0i) << endl;
-    
-    double k0 = 1;
-    double k1 = 10;
-    double r = 1;
-    for (int i = 0; i < 10; ++i) {
-        cout << "Sn[l=" << i << ", kr=" << k0*r << "] = " << riccati_bessel_zn(1, i, 1.0, false) << endl;
-    }
-    for (int i = 0; i < 10; ++i) {
-        cout << "Cn[l=" << i << ", kr=" << k0*r << "] = " << riccati_bessel_zn(2, i, 1.0, false) << endl;
-    }
-    for (int i = 0; i < 10; ++i) {
-        cout << "jn[l=" << i << ", kr=" << k0*r << "] = " << spherical_bessel_zn(1, i, 1.0+1.0i, true) << endl;
-    }
-    for (int i = 0; i < 10; ++i) {
-        cout << "yn[l=" << i << ", kr=" << k0*r << "] = " << spherical_bessel_zn(2, i, 1.0+1.0i, true) << endl;
-    }
-    for (int i = 0; i < 10; ++i) {
-        cout << "A[" << i << "] = " << Mie::coef_an(i, k0, k1, r) << endl;
-    }
-    for (int i = 0; i < 10; ++i) {
-        cout << "B[" << i << "] = " << Mie::coef_bn(i, k0, k1, r) << endl;
-    }
-/*
     double minx = 1, maxx = 40;
-    double dx   = 1;
+    double dx   = 0.1;
     vector<double> xs;
     vector<double> Qs;
-    int lmax = 10;
+    int lmax = 50;
     for (double x = minx; x <= maxx; x += dx) {
         xs.push_back(x);
         Qs.push_back(test::Qext(x, lmax));
     }
-    plt::plot(xs, Qs);
+    plt::scatter(xs, Qs);
     plt::save("../test/out/Qext.png");
 
-    
+    double a = 1.0;
+    auto v = integrate::sphere(test::func, &a);
+    cout << v << endl;
+
+/*    
     cout << "lmax: ";
     cin >> lmax;
     test::checkTsph(lmax, 1, 10, 1);
+*/
     auto s = chrono::system_clock::now();
     test::test_vector_spherical(true);
     auto e = chrono::system_clock::now();
     cout << "test_vector_sperical(): "
          << chrono::duration_cast<chrono::milliseconds>(e-s).count() 
          << " msec." << endl;
-
+    
+/*
     cout << "lmax: ";
     cin  >> lmax;
     auto cnt = test::writeoutQ(lmax);
     cout << "\ncntall: " << cnt.first << ", cntfinite: " << cnt.second << endl;
     cout << "cnt_diagnol: " << 8*test::count_lm(lmax) << endl;
-    */
+*/    
 }
