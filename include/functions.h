@@ -4,7 +4,6 @@
 #include <complex>
 #include <vector>
 #include <utility>
-#include <eigen3/Eigen/Eigen>
 #include "coordinate.h"
 
 namespace special {
@@ -22,12 +21,12 @@ std::complex<double> riccati_bessel_zn(int p, int n, std::complex<double> z, boo
 // from index to lm
 void legendre_lm(const size_t index, int& l, int& m);
 
-Eigen::Vector3cd vector_spherical_harmonics(
+std::vector<std::complex<double>> vector_spherical_harmonics(
                                     int p, 
                                     int tau, char sigma, int l, int m,
                                     double k, double r, double theta, double phi);
 
-Eigen::Vector3cd curl_vector_spherical_harmonics(
+std::vector<std::complex<double>> curl_vector_spherical_harmonics(
                                     int p, 
                                     int tau, char sigma, int l, int m,
                                     double k, double r, double theta, double phi);

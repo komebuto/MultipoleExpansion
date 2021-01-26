@@ -5,8 +5,6 @@
 #include <vector>
 #include <complex>
 #include <map>
-#include <eigen3/Eigen/Eigen>
-#include <gsl/gsl_sf_bessel.h>
 #include <gsl/gsl_sf_legendre.h>
 #include <complex_bessel.h>
 #include "coordinate.h"
@@ -138,51 +136,51 @@ double m_Plm_div(int l, int m, double x) {
     return -0.5 * (Plm(l+1, m+1, x) + (l-m+1)*(l-m+2)*Plm(l+1, m-1, x));
 }
 
-Eigen::Vector3cd M1e(int p, int l, int m, double k, double r, double theta, double phi) {
+vector<complex<double>> Me(int p, int l, int m, double k, double r, double theta, double phi) {
     auto vr     = complex<double>{0.0, 0.0};
     auto vtheta = -1.0 * spherical_bessel_zn(p, l, k*r, false) * m_Plm_div(l, m, std::cos(theta)) * std::sin(m*phi);
-    auto vphi   = -1.0 * spherical_bessel_zn(p, l, k*r, false) * Plm_deriv_alt(l, m, theta)  * std::cos(m*phi);
-    return Eigen::Vector3cd{vr, vtheta, vphi};
+    auto vphi   = -1.0 * spherical_bessel_zn(p, l, k*r, false) * Plm_deriv_alt(l, m, theta) * std::cos(m*phi);
+    return vector<complex<double>>{vr, vtheta, vphi};
 }
 
-Eigen::Vector3cd M1o(int p, int l, int m, double k, double r, double theta, double phi) {
+vector<complex<double>> Mo(int p, int l, int m, double k, double r, double theta, double phi) {
     auto vr     = complex<double>{0.0, 0.0};
     auto vtheta =        spherical_bessel_zn(p, l, k*r, false) * m_Plm_div(l, m, std::cos(theta)) * std::cos(m*phi);
-    auto vphi   = -1.0 * spherical_bessel_zn(p, l, k*r, false) * Plm_deriv_alt(l, m, theta)  * std::sin(m*phi);
-    return Eigen::Vector3cd{vr, vtheta, vphi};
+    auto vphi   = -1.0 * spherical_bessel_zn(p, l, k*r, false) * Plm_deriv_alt(l, m, theta) * std::sin(m*phi);
+    return vector<complex<double>>{vr, vtheta, vphi};
 }
 
-Eigen::Vector3cd M2e(int p, int l, int m, double k, double r, double theta, double phi) {
+vector<complex<double>> Ne(int p, int l, int m, double k, double r, double theta, double phi) {
     auto vr     = static_cast<double>(l*(l+1)) 
-                        * zn_div(p, l, k*r) * Plm(l, m, std::cos(theta))      * std::cos(m*phi);
+                        * zn_div(p, l, k*r) * Plm(l, m, std::cos(theta)) * std::cos(m*phi);
     auto vtheta =        dzn_div(p, l, k*r) * Plm_deriv_alt(l, m, theta) * std::cos(m*phi);
-    auto vphi   = -1.0 * dzn_div(p, l, k*r) * m_Plm_div(l, m, std::cos(theta))* std::sin(m*phi);
-    return Eigen::Vector3cd{vr, vtheta, vphi};
+    auto vphi   = -1.0 * dzn_div(p, l, k*r) * m_Plm_div(l, m, std::cos(theta)) * std::sin(m*phi);
+    return vector<complex<double>>{vr, vtheta, vphi};
 }
 
-Eigen::Vector3cd M2o(int p, int l, int m, double k, double r, double theta, double phi) {
+vector<complex<double>> No(int p, int l, int m, double k, double r, double theta, double phi) {
     auto vr     = static_cast<double>(l*(l+1)) 
-                 * zn_div(p, l, k*r) * Plm(l, m, std::cos(theta))      * std::sin(m*phi);
+                 * zn_div(p, l, k*r) * Plm(l, m, std::cos(theta)) * std::sin(m*phi);
     auto vtheta = dzn_div(p, l, k*r) * Plm_deriv_alt(l, m, theta) * std::sin(m*phi);
-    auto vphi   = dzn_div(p, l, k*r) * m_Plm_div(l, m, std::cos(theta))* std::cos(m*phi);
-    return Eigen::Vector3cd{vr, vtheta, vphi};
+    auto vphi   = dzn_div(p, l, k*r) * m_Plm_div(l, m, std::cos(theta)) * std::cos(m*phi);
+    return vector<complex<double>>{vr, vtheta, vphi};
 }
 
-Eigen::Vector3cd vector_spherical_harmonics(int p, 
+vector<complex<double>> vector_spherical_harmonics(int p, 
                                           int tau, char sigma, int l, int m,
                                           double k, double r, double theta, double phi) {
     switch (tau) {
     case 1:
-        if (sigma == 'e')      return M1e(p, l, m, k, r, theta, phi);
-        else if (sigma == 'o') return M1o(p, l, m, k, r, theta, phi);
+        if (sigma == 'e')      return Me(p, l, m, k, r, theta, phi);
+        else if (sigma == 'o') return Mo(p, l, m, k, r, theta, phi);
         else {
             cerr << __FILE__ << ":" << __LINE__ << ": vector_spherical_harmonics(): ERROR:" 
                  << "argument sigma = " << sigma << " must be either 'e' or 'o'" << endl;
             throw;
         }
     case 2:
-        if (sigma == 'e')      return M2e(p, l, m, k, r, theta, phi); 
-        else if (sigma == 'o') return M2o(p, l, m, k, r, theta, phi); 
+        if (sigma == 'e')      return Ne(p, l, m, k, r, theta, phi); 
+        else if (sigma == 'o') return No(p, l, m, k, r, theta, phi); 
         else {
             cerr << __FILE__ << ":" << __LINE__ << ": vector_spherical_harmonics(): ERROR:" 
                  << "argument sigma = " << sigma << " must be either 'e' or 'o'" << endl;
@@ -195,10 +193,14 @@ Eigen::Vector3cd vector_spherical_harmonics(int p,
     }
 }
 
-Eigen::Vector3cd curl_vector_spherical_harmonics(int p, 
+vector<complex<double>> curl_vector_spherical_harmonics(int p, 
                                                int tau, char sigma, int l, int m,
                                                double k, double r, double theta, double phi) {
-    return k * vector_spherical_harmonics(p, 3-tau, sigma, l, m, k, r, theta, phi);
+    auto res = vector_spherical_harmonics(p, 3-tau, sigma, l, m, k, r, theta, phi);
+    res[0] *= k;
+    res[1] *= k;
+    res[2] *= k;
+    return res;
 }
 
 } // namespace special

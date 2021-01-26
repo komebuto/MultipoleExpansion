@@ -8,7 +8,7 @@ else
 CXXFLAGS  = -std=c++14 -Wall -g
 endif
 LDFLAGS   = -L/usr/local/lib
-LDLIBS    = -lcubature64-1.0.3 -lgsl -lgslcblas -lm -lpython3.8 -lcomplex_bessel
+LDLIBS    = -lcubature64-1.0.4 -lgsl -lgslcblas -lm -lpython3.8 -lcomplex_bessel
 INCLUDE   = -I/usr/local/include -I../include -I/usr/include/python3.8
 TARGETS   = program
 TARGETDIR = ../bin

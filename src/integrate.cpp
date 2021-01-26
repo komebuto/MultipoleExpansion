@@ -1,5 +1,6 @@
 #include <math.h>
 #include <complex>
+#include <iostream>
 #include <cubature/cubature.h>
 #include "integrate.h"
 
@@ -7,6 +8,7 @@ using namespace std;
 using namespace std::complex_literals;
 
 namespace integrate {
+double EPS = 1e-10;
 complex<double> sphere(Func f, void* fdata, 
                        double thetamin, double thetamax, 
                        double phimin, double phimax) {
@@ -31,6 +33,7 @@ complex<double> sphere(Func f, void* fdata,
               vardim, varmin, varmax, 
               maxEval, reqAbsError, reqRelError, norm, 
               val, err); 
+    if (val[0] < -EPS) cerr << "val[0] = " << val[0] << endl;
     return val[0] + 1.0i*val[1];
 }
 

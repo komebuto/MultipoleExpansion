@@ -8,6 +8,7 @@
 #include "scattering.h"
 
 using namespace std;
+using namespace std::complex_literals;
 using namespace special;
 using namespace Eigen;
 using namespace coordinate;
@@ -60,8 +61,7 @@ complex<double> coef_bn(int n, complex<double> k0, complex<double> k1, double r)
 
 namespace TMatrix {
 bool operator<(const VecSphIndex& n1, const VecSphIndex& n2) {
-    return     n1.p    < n2.p      //  1  <  2
-           || n1.tau   < n2.tau    //  1  <  2
+    return    n1.tau   < n2.tau    //  1  <  2
            || n1.sigma < n2.sigma  // 'e' < 'o'
            || n1.l     < n2.l 
            || n1.m     < n2.m;
@@ -104,16 +104,27 @@ complex<double> T_sph_element(TmatrixIndex n, complex<double> k0, complex<double
   k1 : wave number of particle
 */
 
-Eigen::Vector3cd integrand_vec(Indexes &index, double k0, double k1, double r, double theta, double phi) {
+vector<complex<double>> cross(vector<complex<double>>& a, vector<complex<double>>& b) {
+    vector<complex<double>> c(3);
+    c[0] = a[1] * b[2] - a[2] * b[1];
+    c[1] = a[2] * b[0] - a[2] * b[0];
+    c[2] = a[0] * b[1] - a[1] * b[0];
+    return c;
+}
+
+vector<complex<double>> integrand_vec(Indexes &index, double k0, double k1, double r, double theta, double phi) {
     auto   n1 = index.first;
     auto   n2 = index.second;
 
-    Eigen::Vector3cd M1, cM1, M2, cM2;
-    M1  = special::vector_spherical_harmonics(n1.p, n1.tau, n1.sigma, n1.l, n1.m, k0, r, theta, phi);
-    cM1 = special::curl_vector_spherical_harmonics(n1.p, n1.tau, n1.sigma, n1.l, n1.m, k0, r, theta, phi);
-    M2  = special::vector_spherical_harmonics(n2.p, n2.tau, n2.sigma, n2.l, n2.m, k1, r, theta, phi);
-    cM2 = special::curl_vector_spherical_harmonics(n2.p, n2.tau, n2.sigma, n2.l, n2.m, k1, r, theta, phi);
-    return cM1.cross(M2) + M1.cross(cM2);
+    auto M1  = special::vector_spherical_harmonics(n1.p, n1.tau, n1.sigma, n1.l, n1.m, k0, r, theta, phi);
+    auto cM1 = special::curl_vector_spherical_harmonics(n1.p, n1.tau, n1.sigma, n1.l, n1.m, k0, r, theta, phi);
+    auto M2  = special::vector_spherical_harmonics(n2.p, n2.tau, n2.sigma, n2.l, n2.m, k1, r, theta, phi);
+    auto cM2 = special::curl_vector_spherical_harmonics(n2.p, n2.tau, n2.sigma, n2.l, n2.m, k1, r, theta, phi);
+    
+    auto v1 = cross(cM1, M2);
+    auto v2 = cross(M1, cM2);
+    vector<complex<double>> res{v1[0]+v2[0], v1[1]+v2[1], v1[2]+v2[2]};
+    return res;
 }
 
 
@@ -221,3 +232,40 @@ complex<double> intRectangular(Indexes indexes, double k0, double k1, double wx,
     return complex<double>{res[0], res[1]};
 }
 } // namespace TMatrix
+
+namespace DDA {
+// Descrete dipole approximation
+// Physical Review B 82, 045404 (2010)
+
+double hypot3(double x, double y, double z) { 
+    return sqrt(x*x + y*y + z*z);
+}
+
+complex<double> exp(complex<double> z) {
+    return cos(real(z)) + 1i * sin(imag(z));
+}
+
+vector<vector<complex<double>>> G(double k, double x, double y, double z) {
+    vector<vector<complex<double>>> res{{x*x, x*y, x*z},
+                                        {y*x, y*y, y*z},
+                                        {z*x, z*y, z*z}};
+    auto R = hypot3(x, y, z);
+    auto term1 = 1/R + 1/(k*R*R) - 1/(k*k*R*R*R);
+    auto term2 = -1/R - 3i/(k*R*R) + 3/(k*k*R*R*R);
+    auto term3 = exp(1i*k*R/(4*M_PI));
+    for (int i = 0; i < 3; ++i) for (int j = 0; j < 3; ++j) {
+        res[i][j] = res[i][j] * term2 / (R*R);
+        if (i == j) res[i][j] += term1;
+        res[i][j] *= term3;
+    }
+    return res;
+}
+
+complex<double> aE(double k, complex<double> a1, double eps0) {
+    return 6.0i*M_PI*eps0*a1/(k*k*k);
+}
+
+complex<double> aM(double k, complex<double> b1) {
+    return 6.0i*M_PI*b1/(k*k*k);
+}
+} // namespace DDA

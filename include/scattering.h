@@ -38,4 +38,11 @@ std::complex<double> Mie_coef_bn(int n, std::complex<double> k0, std::complex<do
 std::complex<double> T_sph_element(TmatrixIndex n, std::complex<double> k0, std::complex<double> k1, double r);
 }
 
+namespace DDA {
+constexpr double EPS0 = 8.8541878128E-12;
+std::vector<std::vector<std::complex<double>>> G(double k, double x, double y, double z);
+std::complex<double> aE(double k, std::complex<double> a1, double eps0=EPS0);
+std::complex<double> aM(double k, std::complex<double> b1);
+}
+
 #endif // __TMATRIX_H_
